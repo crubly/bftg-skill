@@ -1,11 +1,11 @@
 ---
 name: bftg-skill
-description: Use this catalog when replacing ordinary emoji with Telegram premium custom emoji in bot messages/keyboards, or when changing reply keyboard button colors via Telegram Bot API. Triggers on: tg-emoji, custom emoji id, icon_custom_emoji_id, premium emoji, telegram bot button color, KeyboardButton color.
+description: Use this catalog when replacing ordinary emoji with Telegram premium custom emoji in bot messages/keyboards, or when styling/coloring inline and reply keyboard buttons via aiogram (3.30+) / Telegram Bot API 9.4+. Triggers on: tg-emoji, custom emoji id, icon_custom_emoji_id, premium emoji, telegram bot button color, button style, ButtonStyle, KeyboardButton color, InlineKeyboardButton style.
 ---
 
-# Telegram Premium Emoji Catalog
+# BFTG — Beautiful Fancy Telegram GUI
 
-Use this catalog when replacing ordinary emoji in Telegram bot messages and keyboards.
+Use this skill when replacing ordinary emoji in Telegram bot messages/keyboards, or when styling keyboard buttons (color). Uses aiogram 3.30+ (Bot API 9.4+).
 
 ## Message Format
 
@@ -23,15 +23,53 @@ Example:
 
 ## Keyboard Button Format
 
-Use `icon_custom_emoji_id` and keep `text` free of ordinary emoji:
+Use `icon_custom_emoji_id` for the icon and keep `text` free of ordinary emoji. Icon and color are two separate, independent fields — `icon_custom_emoji_id` (aiogram 3.x, both `InlineKeyboardButton` and `KeyboardButton`) and `style` (aiogram 3.30+, requires Bot API 9.4+, also on both button types):
 
 ```python
+from aiogram.types import InlineKeyboardButton
+
 InlineKeyboardButton(
     text="Subscribe",
     url=CHANNEL_LINK,
     icon_custom_emoji_id="6039450962865688331",
 )
 ```
+
+Reply keyboard (`KeyboardButton`) uses the same two fields:
+
+```python
+from aiogram.types import KeyboardButton
+
+KeyboardButton(
+    text="Subscribe",
+    icon_custom_emoji_id="6039450962865688331",
+)
+```
+
+## Button Color / Style (aiogram 3.30+, Bot API 9.4+)
+
+Color is a dedicated `style` field on `InlineKeyboardButton` and `KeyboardButton` — it is unrelated to `icon_custom_emoji_id`. There is no "color via custom emoji" trick; that field does not exist and any emoji ID used for that purpose is just a regular icon, not a color mechanism.
+
+`style` accepts one of:
+
+| Value | Color | Recommended for |
+| --- | --- | --- |
+| `primary` | blue | main/default action |
+| `success` | green | positive/confirm action |
+| `danger` | red | destructive action |
+
+```python
+from aiogram.types import InlineKeyboardButton
+from aiogram.enums import ButtonStyle
+
+InlineKeyboardButton(
+    text="Confirm",
+    callback_data="confirm",
+    style=ButtonStyle.SUCCESS,  # or style="success"
+)
+```
+
+`style` and `icon_custom_emoji_id` can be combined on the same button (icon + color).
 
 ## IDs
 
@@ -97,21 +135,11 @@ Use these IDs when matching existing subscription/check buttons if the project u
 | Subscribe | `6039450962865688331` |
 | Check subscription | `5774022692642492953` |
 
-## Reply Keyboard Button Colors (Bot API)
-
-Reply keyboard buttons can carry a color hint through the button's custom emoji icon, not through a separate "color" field — Telegram Bot API has no dedicated per-button color parameter. Color is achieved indirectly by attaching one of these color-coded custom emoji as `icon_custom_emoji_id` (or inline as `<tg-emoji>` in text) so the button icon renders in that hue:
-
-| Color | custom emoji ID |
-| --- | --- |
-| Blue | `5373141891321699086` |
-| Red | `5370810157871667232` |
-| Green | `5471984997361523302` |
-
-**Don't push color everywhere.** Color a button only where accent actually helps (e.g. destructive "Delete"/"Cancel" in red, confirm action in green). Leave other buttons without color icon, plain text.
+**Don't push color everywhere.** Set `style` only where accent actually helps (e.g. destructive "Delete"/"Cancel" as `danger`, confirm action as `success`). Leave other buttons with default style (no `style` set), plain text.
 
 ## Replacement Checklist
 
 - Messages: ordinary emoji becomes `<tg-emoji emoji-id="...">emoji</tg-emoji>`.
-- Inline keyboards: remove emoji from `text`; add `icon_custom_emoji_id`.
-- Reply keyboards: remove emoji from `text`; add `icon_custom_emoji_id` in each button object. Apply color IDs sparingly, only for buttons that need visual emphasis.
+- Inline keyboards: remove emoji from `text`; add `icon_custom_emoji_id` for the icon, `style` for color — independently, as needed.
+- Reply keyboards: remove emoji from `text`; add `icon_custom_emoji_id`/`style` in each `KeyboardButton` the same way. Apply `style` sparingly, only for buttons that need visual emphasis.
 - Alerts and short answers: use premium emoji only if Telegram HTML/custom emoji is supported in that surface; otherwise prefer text without ordinary emoji.
